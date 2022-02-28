@@ -1,0 +1,17 @@
+server {
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+
+    root /srv;
+    server_name _;
+    location /checkip {
+        default_type text/plain;
+        return 200 "$remote_addr\n";
+    }
+    location / {
+        dav_methods PUT;
+		create_full_put_path  off;
+		client_max_body_size  512M;
+        # try_files $uri $uri/ =404;
+    }
+}
