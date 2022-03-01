@@ -16,38 +16,23 @@ DOCKER=${DOCKER:=docker}
 PROJECT_PATH=$(dirname "$0")/..
 PROJECT_PATH=$(realpath "${PROJECT_PATH}")
 
-SRC_PATH=${SRC_PATH:=${PROJECT_PATH}/src}
 ETC_PATH=${ETC_PATH:=${PROJECT_PATH}/etc}
 SRV_PATH=/tmp/${STUDENT_IMAGE}-srv
 
 MYUID=$(id -u)
 MYGID=$(id -g)
 
-DO_PULL=${DO_PULL:=true}
 
 cd "${PROJECT_PATH}"
 
-build_local() {
-    cd "${SRC_PATH}"
-    make clean
-    make
-    cd "${PROJECT_PATH}"
-}
-
-build_container() {
-    cd "${SRC_PATH}"
-    ${DOCKER} build -t ${STUDENT_IMAGE} .
-    cd "${PROJECT_PATH}"
-}
-
 prepare_volume() {
-    ${DOCKER} volume rm $2 2>/dev/null || true
-    ${DOCKER} volume create $2
+    ${DOCKER} volume rm $2 1>/dev/null 2>/dev/null || true
+    ${DOCKER} volume create $2 >/dev/null
     ${DOCKER} run --rm -v$1:/from:ro -v$2:/to busybox:stable sh -c "rm -rf /to/*;cp -r /from/* /to/;chown -R 101:101 /to/"
 }
 
 diff_volume() {
-    ${DOCKER} run --rm -v$2:/vol1:ro -v$3:/vol2:ro busybox:stable diff -q /vol1/$1 /vol2/$1
+    ${DOCKER} run --rm -v$2:/vol1:ro -v$3:/vol2:ro busybox:stable diff /vol1/$1 /vol2/$1
 }
 
 down_local() {
@@ -55,11 +40,11 @@ down_local() {
 }
 
 down_container() {
-    ${DOCKER} container rm -f ${SERVER_NAME} 2>/dev/null || true
-    ${DOCKER} volume rm ${SERVER_NAME} 2>/dev/null || true
-    ${DOCKER} container rm -f ${CLIENT_NAME} 2>/dev/null || true
-    ${DOCKER} volume rm ${CLIENT_NAME} 2>/dev/null || true
-    ${DOCKER} network rm ${NETWORK_NAME} 2>/dev/null || true
+    ${DOCKER} container rm -f ${SERVER_NAME} 1>/dev/null 2>/dev/null || true
+    ${DOCKER} volume rm ${SERVER_NAME} 1>/dev/null 2>/dev/null || true
+    ${DOCKER} container rm -f ${CLIENT_NAME} 1>/dev/null 2>/dev/null || true
+    ${DOCKER} volume rm ${CLIENT_NAME} 1>/dev/null 2>/dev/null || true
+    ${DOCKER} network rm ${NETWORK_NAME} 1>/dev/null 2>/dev/null || true
 }
 
 down() {
@@ -75,7 +60,7 @@ up_local() {
 }
 
 up_network() {
-    ${DOCKER} network create ${NETWORK_NAME}
+    ${DOCKER} network create ${NETWORK_NAME} 1>/dev/null 2>/dev/null
 }
 
 up_container() {
@@ -83,7 +68,7 @@ up_container() {
 }
 
 up_nginx() {
-    ${DOCKER} container run --rm -d --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} -v${ETC_PATH}:/etc/nginx/conf.d/:ro nginx:stable
+    ${DOCKER} container run --rm -d --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} -v${ETC_PATH}:/etc/nginx/conf.d/:ro nginx:stable 1>/dev/null 2>/dev/null
 }
 
 run_curl() {
@@ -140,11 +125,7 @@ student)
     ;;
 esac
 
-${DO_PULL} && ${DOCKER} pull busybox:stable
-${DO_PULL} && ${DOCKER} pull nginx:stable
-${DO_PULL} && ${DOCKER} pull curlimages/curl:latest
 
-build_container
 down
 [ ! -z "$SERVER_DATA" ] && prepare_volume "$SERVER_DATA" "$SERVER_NAME"
 [ ! -z "$CLIENT_DATA" ] && prepare_volume "$CLIENT_DATA" "$CLIENT_NAME"
@@ -157,3 +138,7 @@ if [ ! -z "$CHECK" ]; then
     [ ! -z "$SERVER_DATA" ] && diff_volume "$CHECK" "$SERVER_DATA" "$CLIENT_NAME"
     [ ! -z "$CLIENT_DATA" ] && diff_volume "$CHECK" "$CLIENT_DATA" "$SERVER_NAME"
 fi
+
+
+echo "Test Passed"
+exit 0
