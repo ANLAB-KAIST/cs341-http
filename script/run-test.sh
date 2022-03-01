@@ -33,7 +33,7 @@ prepare_volume() {
 }
 
 diff_volume() {
-    ${DOCKER} run --rm -v$2:/vol1:ro -v$3:/vol2:ro busybox:stable diff /vol1/$1 /vol2/$1
+    ${DOCKER} run --rm -v$2:/vol1:ro -v$3:/vol2:ro busybox:stable diff -s /vol1/$1 /vol2/$1
 }
 
 down_local() {
@@ -65,23 +65,23 @@ up_network() {
 }
 
 up_container() {
-    ${DOCKER} container run --rm -t --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} ${STUDENT_IMAGE} http-server &
+    ${DOCKER} container run --rm -t --network ${NETWORK_NAME} -v${SERVER_NAME}:/tmp --name ${SERVER_NAME} ${STUDENT_IMAGE} http-server &
 }
 
 up_nginx() {
-    ${DOCKER} container run --rm -d --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} -v${ETC_PATH}:/etc/nginx/conf.d/:ro nginx:stable 1>/dev/null 2>/dev/null
+    ${DOCKER} container run --rm -d --network ${NETWORK_NAME} -v${SERVER_NAME}:/tmp --name ${SERVER_NAME} -v${ETC_PATH}:/etc/nginx/conf.d/:ro nginx:stable 1>/dev/null 2>/dev/null
 }
 
 run_curl() {
-    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} curlimages/curl:latest -s -v -H 'Expect:' $@
+    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} curlimages/curl:latest -s -v -H 'Expect:' $@ || true
 }
 
 run_client() {
-    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} ${STUDENT_IMAGE} http-client $@
+    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} ${STUDENT_IMAGE} http-client $@ || true
 }
 
 run_nc() {
-    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} busybox:stable nc $@
+    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} busybox:stable nc $@ || true
 }
 
 case $1 in
@@ -89,6 +89,26 @@ get_hello)
     SERVER_DATA="index.html"
     COMMAND="-o /tmp/index.html http://${SERVER_NAME}:8080/index.html"
     CHECK="index.html"
+    ;;
+get_4k)
+    SERVER_DATA="4k.bin"
+    COMMAND="-o /tmp/4k.bin http://${SERVER_NAME}:8080/4k.bin"
+    CHECK="4k.bin"
+    ;;
+get_2m)
+    SERVER_DATA="2m.bin"
+    COMMAND="-o /tmp/2m.bin http://${SERVER_NAME}:8080/2m.bin"
+    CHECK="2m.bin"
+    ;;
+get_512m)
+    SERVER_DATA="512m.bin"
+    COMMAND="-o /tmp/512m.bin http://${SERVER_NAME}:8080/512m.bin"
+    CHECK="512m.bin"
+    ;;
+put_4k)
+    CLIENT_DATA="4k.bin"
+    COMMAND="-o /tmp/4k.bin.txt -T /tmp/4k.bin http://${SERVER_NAME}:8080/4k.bin"
+    CHECK="4k.bin"
     ;;
 *)
     echo "Unkown test: $1"
