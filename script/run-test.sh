@@ -110,6 +110,16 @@ put_4k)
     COMMAND="-o /tmp/4k.bin.txt -T /tmp/4k.bin http://${SERVER_NAME}:8080/4k.bin"
     CHECK="4k.bin"
     ;;
+put_2m)
+    CLIENT_DATA="2m.bin"
+    COMMAND="-o /tmp/2m.bin.txt -T /tmp/2m.bin http://${SERVER_NAME}:8080/2m.bin"
+    CHECK="2m.bin"
+    ;;
+put_512m)
+    CLIENT_DATA="512m.bin"
+    COMMAND="-o /tmp/512m.bin.txt -T /tmp/512m.bin http://${SERVER_NAME}:8080/512m.bin"
+    CHECK="512m.bin"
+    ;;
 *)
     echo "Unkown test: $1"
     exit 1
