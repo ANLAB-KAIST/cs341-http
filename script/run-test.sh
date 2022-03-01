@@ -46,6 +46,10 @@ prepare_volume() {
     ${DOCKER} run --rm -v$1:/from:ro -v$2:/to busybox:stable sh -c "rm -rf /to/*;cp -r /from/* /to/;chown -R 101:101 /to/"
 }
 
+diff_volume() {
+    ${DOCKER} run --rm -v$2:/vol1:ro -v$3:/vol2:ro busybox:stable diff -q /vol1/$1 /vol2/$1
+}
+
 down_local() {
     pkill -x "${SRC_PATH}/http-server" 2>/dev/null || true
 }
@@ -75,7 +79,7 @@ up_network() {
 }
 
 up_container() {
-    ${DOCKER} container run --rm -t --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} ${STUDENT_IMAGE} &
+    ${DOCKER} container run --rm -t --network ${NETWORK_NAME} -v${SERVER_NAME}:/srv --name ${SERVER_NAME} ${STUDENT_IMAGE} http-server &
 }
 
 up_nginx() {
@@ -83,20 +87,15 @@ up_nginx() {
 }
 
 run_curl() {
-     ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} curlimages/curl:latest -s -v -H 'Expect:' $@
+    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} curlimages/curl:latest -s -v -H 'Expect:' $@
 }
 
 run_client() {
-    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} ${STUDENT_IMAGE} $@
+    ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} ${STUDENT_IMAGE} http-client $@
 }
 
 run_nc() {
     ${DOCKER} run --rm --network ${NETWORK_NAME} -v${CLIENT_NAME}:/tmp --name ${CLIENT_NAME} busybox:stable nc $@
-}
-
-test_get_hello() {
-    prepare_volume
-
 }
 
 case $1 in
@@ -153,3 +152,8 @@ up_network
 ${UP_SERVER}
 sleep 5
 ${RUN_CLI} ${COMMAND}
+
+if [ ! -z "$CHECK" ]; then
+    [ ! -z "$SERVER_DATA" ] && diff_volume "$CHECK" "$SERVER_DATA" "$CLIENT_NAME"
+    [ ! -z "$CLIENT_DATA" ] && diff_volume "$CHECK" "$CLIENT_DATA" "$SERVER_NAME"
+fi
