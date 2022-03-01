@@ -19,5 +19,5 @@
 ### PUT
 
 ```bash
-./http-client -T <input_path> -o <output_path> <URL>
+./http-client -o <output_path> -T <input_path> <URL>
 ```
